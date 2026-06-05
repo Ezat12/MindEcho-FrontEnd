@@ -26,7 +26,6 @@ export default function Login() {
     setError(null);
 
     try {
-      // الـ Payload بالحروف الكابيتال طبقاً لطلب الـ API والـ JSON المتوقع بالباك آند
       const payload = { 
         Email: email, 
         Password: password 
@@ -40,7 +39,6 @@ export default function Login() {
       }
 
       if (res?.success && res?.data?.token) {
-        // استخراج المعرف طبقاً لمحتوى الريسبونس الخاص بكل دور
         const userId = role === 'doctor' ? (res.data.doctorId || '') : (res.data.userId || '');
         
         login(res.data, res.data.token, role, userId);
