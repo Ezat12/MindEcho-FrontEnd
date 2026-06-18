@@ -17,15 +17,12 @@ function clampRating(value: number) {
 }
 
 function DoctorsList({ doctors, onBook, onViewProfile }: DoctorsListProps) {
-  const allTags = (() => {
-    const set = new Set<string>();
-    doctors.forEach((d) => d.tags.forEach((t) => set.add(t)));
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  })();
-
+  // Extract unique specializations for filter
   const specialties = (() => {
     const set = new Set<string>();
-    doctors.forEach((d) => set.add(d.specialization));
+    doctors.forEach((d) => {
+      if (d.specialization) set.add(d.specialization);
+    });
     return [
       "All specialties",
       ...Array.from(set).sort((a, b) => a.localeCompare(b)),
@@ -37,7 +34,6 @@ function DoctorsList({ doctors, onBook, onViewProfile }: DoctorsListProps) {
     specialties[0] ?? "All specialties",
   );
   const [minRating, setMinRating] = useState<number>(0);
-  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("recommended");
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
@@ -47,35 +43,36 @@ function DoctorsList({ doctors, onBook, onViewProfile }: DoctorsListProps) {
   const filtered = doctors.filter((d) => {
     const matchesQuery =
       q.length === 0 ||
-      d.fullName.toLowerCase().includes(q) ||
-      d.specialization.toLowerCase().includes(q) ||
-      d.bio.toLowerCase().includes(q) ||
-      d.tags.some((t) => t.toLowerCase().includes(q));
+      d.fullName?.toLowerCase().includes(q) ||
+      d.specialization?.toLowerCase().includes(q) ||
+      (d.bio && d.bio.toLowerCase().includes(q));
 
     const matchesSpecialty =
       specialty === "All specialties" ? true : d.specialization === specialty;
-    const matchesRating = d.rating >= min;
-    const matchesTag = activeTag ? d.tags.includes(activeTag) : true;
 
-    return matchesQuery && matchesSpecialty && matchesRating && matchesTag;
+    // Note: rating doesn't exist in IDoctor, so we'll use a default or calculate
+    // For now, we'll skip rating filter or add a placeholder
+    const matchesRating = true; // d.rating >= min; // rating not available
+
+    return matchesQuery && matchesSpecialty && matchesRating;
   });
 
+  // Sort logic (adjusted for available fields)
   filtered.sort((a, b) => {
     switch (sortKey) {
       case "rating_desc":
-        return b.rating - a.rating;
+        // rating not available, sort by name instead
+        return a.fullName.localeCompare(b.fullName);
       case "reviews_desc":
-        return b.ratingCount - a.ratingCount;
+        // ratingCount not available
+        return a.fullName.localeCompare(b.fullName);
       case "price_asc":
-        return a.priceEGP - b.priceEGP;
+        // priceEGP not available
+        return a.fullName.localeCompare(b.fullName);
       case "recommended":
-      default: {
-        const score = (d: IDoctor) =>
-          d.rating * 100 +
-          Math.min(d.ratingCount, 500) / 10 +
-          (d.verified ? 10 : 0);
-        return score(b) - score(a);
-      }
+      default:
+        // Sort by name as default
+        return a.fullName.localeCompare(b.fullName);
     }
   });
 
@@ -140,25 +137,13 @@ function DoctorsList({ doctors, onBook, onViewProfile }: DoctorsListProps) {
               Quick filters
             </span>
             <div className="flex flex-wrap gap-2">
-              {allTags.slice(0, 8).map((tag) => {
-                const isActive = activeTag === tag;
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() =>
-                      setActiveTag((t) => (t === tag ? null : tag))
-                    }
-                    className={
-                      isActive
-                        ? "rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-blue-600/20"
-                        : "rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200/80 transition hover:bg-slate-200"
-                    }
-                  >
-                    {tag}
-                  </button>
-                );
-              })}
+              {/* Tags removed since not in IDoctor - can add common specializations instead */}
+              <button
+                type="button"
+                className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200/80 transition hover:bg-slate-200"
+              >
+                Coming soon
+              </button>
             </div>
           </div>
 
@@ -176,11 +161,13 @@ function DoctorsList({ doctors, onBook, onViewProfile }: DoctorsListProps) {
                 value={minRating}
                 onChange={(e) => setMinRating(Number(e.target.value))}
                 className="w-40 accent-blue-600"
+                disabled
               />
               <span className="w-10 text-right text-sm font-semibold text-slate-800">
                 {minRating.toFixed(1)}
               </span>
             </div>
+            <span className="text-xs text-slate-400">(Coming soon)</span>
           </div>
         </div>
       </div>
@@ -192,13 +179,6 @@ function DoctorsList({ doctors, onBook, onViewProfile }: DoctorsListProps) {
             {filtered.length}
           </span>{" "}
           doctors
-          {activeTag ? (
-            <>
-              {" "}
-              • Tag:{" "}
-              <span className="font-semibold text-slate-900">{activeTag}</span>
-            </>
-          ) : null}
         </p>
         <button
           type="button"
@@ -207,7 +187,6 @@ function DoctorsList({ doctors, onBook, onViewProfile }: DoctorsListProps) {
             setQuery("");
             setSpecialty("All specialties");
             setMinRating(0);
-            setActiveTag(null);
             setSortKey("recommended");
           }}
         >
@@ -239,7 +218,7 @@ function DoctorsList({ doctors, onBook, onViewProfile }: DoctorsListProps) {
         <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
           <p className="text-base font-bold text-slate-900">No results</p>
           <p className="mt-1 text-sm text-slate-600">
-            Try a different search, lower the minimum rating, or reset filters.
+            Try a different search or reset filters.
           </p>
         </div>
       ) : null}

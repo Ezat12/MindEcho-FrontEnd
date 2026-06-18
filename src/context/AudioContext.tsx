@@ -1,7 +1,13 @@
-
-import React, { createContext, useState, useContext, useRef, useEffect, useCallback } from 'react';
-import { libraryData } from '../data/libraryData';
-import { mediaData } from '../data/mediaData';
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useRef,
+  useEffect,
+  useCallback,
+} from "react";
+import { libraryData } from "../data/libraryData";
+import { mediaData } from "../data/mediaData";
 
 interface Track {
   id: number;
@@ -10,7 +16,7 @@ interface Track {
   artist?: string;
   thumbnail?: string;
   mood?: string;
-  category?: string; 
+  category?: string;
   duration?: string;
 }
 
@@ -27,7 +33,7 @@ interface AudioContextType {
   toggleRepeat: () => void;
 }
 
-const allTracks: Track[] = [...libraryData, ...mediaData];
+const allTracks: Track[] = [...libraryData, ...mediaData] as unknown as Track[];
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
@@ -36,7 +42,7 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
   const [isRepeat, setIsRepeat] = useState(false);
-  
+
   const audioRef = useRef<HTMLAudioElement>(new Audio());
 
   // 2. استخدام useCallback لمنع إعادة تعريف الدوال بشكل غير ضروري ولحل مشكلة الترتيب
@@ -49,16 +55,21 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     setIsPlaying(!isPlaying);
   }, [isPlaying, currentTrack]);
 
-  const playTrack = useCallback((track: Track) => {
-    if (currentTrack?.id === track.id) {
-      togglePlay();
-      return;
-    }
-    setCurrentTrack(track);
-    audioRef.current.src = track.audioUrl || "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
-    audioRef.current.play();
-    setIsPlaying(true);
-  }, [currentTrack, togglePlay]);
+  const playTrack = useCallback(
+    (track: Track) => {
+      if (currentTrack?.id === track.id) {
+        togglePlay();
+        return;
+      }
+      setCurrentTrack(track);
+      audioRef.current.src =
+        track.audioUrl ||
+        "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+      audioRef.current.play();
+      setIsPlaying(true);
+    },
+    [currentTrack, togglePlay],
+  );
 
   const nextTrack = useCallback(() => {
     if (!currentTrack) return;
@@ -66,7 +77,7 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
     if (isShuffle) {
       nextIndex = Math.floor(Math.random() * allTracks.length);
     } else {
-      const currentIndex = allTracks.findIndex(t => t.id === currentTrack.id);
+      const currentIndex = allTracks.findIndex((t) => t.id === currentTrack.id);
       nextIndex = (currentIndex + 1) % allTracks.length;
     }
     playTrack(allTracks[nextIndex]);
@@ -74,12 +85,11 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
 
   const prevTrack = useCallback(() => {
     if (!currentTrack) return;
-    const currentIndex = allTracks.findIndex(t => t.id === currentTrack.id);
+    const currentIndex = allTracks.findIndex((t) => t.id === currentTrack.id);
     const prevIndex = (currentIndex - 1 + allTracks.length) % allTracks.length;
     playTrack(allTracks[prevIndex]);
   }, [currentTrack, playTrack]);
 
-  
   useEffect(() => {
     const audio = audioRef.current;
     const handleEnded = () => {
@@ -90,18 +100,28 @@ export const AudioProvider = ({ children }: { children: React.ReactNode }) => {
         nextTrack();
       }
     };
-    audio.addEventListener('ended', handleEnded);
-    return () => audio.removeEventListener('ended', handleEnded);
+    audio.addEventListener("ended", handleEnded);
+    return () => audio.removeEventListener("ended", handleEnded);
   }, [isRepeat, nextTrack]); // اعتماد الـ Effect على nextTrack المستقرة بـ useCallback
 
-  const toggleShuffle = () => setIsShuffle(prev => !prev);
-  const toggleRepeat = () => setIsRepeat(prev => !prev);
+  const toggleShuffle = () => setIsShuffle((prev) => !prev);
+  const toggleRepeat = () => setIsRepeat((prev) => !prev);
 
   return (
-    <AudioContext.Provider value={{ 
-      currentTrack, isPlaying, isShuffle, isRepeat, 
-      playTrack, togglePlay, nextTrack, prevTrack, toggleShuffle, toggleRepeat 
-    }}>
+    <AudioContext.Provider
+      value={{
+        currentTrack,
+        isPlaying,
+        isShuffle,
+        isRepeat,
+        playTrack,
+        togglePlay,
+        nextTrack,
+        prevTrack,
+        toggleShuffle,
+        toggleRepeat,
+      }}
+    >
       {children}
     </AudioContext.Provider>
   );

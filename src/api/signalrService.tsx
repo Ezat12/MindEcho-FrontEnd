@@ -1,70 +1,122 @@
-import * as signalR from '@microsoft/signalr';
+// SignalRService.tsx - نسخة مبسطة
+import * as signalR from "@microsoft/signalr";
+
+interface ChatMessage {
+  senderId: string;
+  message: string;
+  timestamp?: string;
+}
 
 class SignalRService {
   public connection: signalR.HubConnection | null = null;
 
-  // START CONNECTION
-
-  async startSignalR() {
+  async startSignalR(): Promise<boolean> {
     if (this.connection?.state === signalR.HubConnectionState.Connected) {
-      return;
+      console.log("✅ SignalR already connected");
+      return true;
     }
 
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
 
+    if (!token) {
+      console.warn("⚠️ No token found. Cannot start SignalR.");
+      return false;
+    }
+
+    // Use relative path through Vite proxy (/api prefix routes to backend)
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl('https://chef-reclining-deodorize.ngrok-free.dev/chatHub', {
-        accessTokenFactory: () => token || '',
+      .withUrl(`/api/chatHub`, {
+        accessTokenFactory: () => localStorage.getItem("token") || "",
       })
-      .withAutomaticReconnect()
+      .withAutomaticReconnect([0, 2000, 5000, 10000])
       .build();
+
+    this.connection.onclose((error) => {
+      console.error("❌ SignalR connection closed:", error);
+    });
+
+    this.connection.onreconnecting(() => {
+      console.warn("🔄 SignalR reconnecting...");
+    });
+
+    this.connection.onreconnected(() => {
+      console.log("✅ SignalR Reconnected");
+    });
 
     try {
       await this.connection.start();
-      console.log('✅ SignalR Connected');
+      console.log("✅ SignalR Connected successfully");
+      console.log("📡 Connection state:", this.connection.state);
+      return true;
     } catch (err) {
-      console.error('❌ SignalR Error:', err);
-      setTimeout(() => this.startSignalR(), 5000);
+      console.error("❌ SignalR Connection Error:", err);
+      return false;
     }
   }
 
-  // RECEIVE MESSAGE
+  // Ensure connection is alive before invoking methods
+  private async ensureConnected(): Promise<boolean> {
+    if (this.connection?.state === signalR.HubConnectionState.Connected) {
+      return true;
+    }
+    console.warn("⚠️ SignalR not connected, attempting to reconnect...");
+    const success = await this.startSignalR();
+    return success;
+  }
 
   onReceiveMessage(callback: (senderId: string, message: string) => void) {
-    this.connection?.on('ReceiveMessage', callback);
+    this.connection?.on("ReceiveMessage", callback);
   }
 
-  offReceiveMessage(callback: (senderId: string, message: string) => void) {
-    this.connection?.off('ReceiveMessage', callback);
+  // Listen for LoadMessages response from server
+  onLoadMessages(callback: (messages: ChatMessage[]) => void) {
+    this.connection?.on("LoadMessages", callback);
   }
 
-  // SEND MESSAGE
+  async joinChat(bookingId: number) {
+    if (!(await this.ensureConnected())) return false;
 
-  async sendMessage(receiverId: string, message: string) {
-    if (this.connection?.state === signalR.HubConnectionState.Connected) {
-      await this.connection.invoke('SendMessage', receiverId, message);
-    } else {
-      console.warn('⚠️ SignalR is not connected. Cannot send message.');
+    try {
+      await this.connection!.invoke("JoinChat", bookingId);
+      console.log("🚪 Joined chat for booking:", bookingId);
+      return true;
+    } catch (err) {
+      console.error("❌ Error joining chat:", err);
+      return false;
     }
   }
 
-  // NOTIFICATIONS
+  async loadMessages(bookingId: number) {
+    if (!(await this.ensureConnected())) return false;
 
-  onReceiveNotification(callback: (data: any) => void) {
-    this.connection?.on('ReceiveNotification', callback);
+    try {
+      await this.connection!.invoke("LoadMessages", bookingId);
+      console.log("📜 Loaded messages for booking:", bookingId);
+      return true;
+    } catch (err) {
+      console.error("❌ Error loading messages:", err);
+      return false;
+    }
   }
 
-  offReceiveNotification(callback: (data: any) => void) {
-    this.connection?.off('ReceiveNotification', callback);
-  }
+  async sendMessage(bookingId: number, message: string) {
+    if (!(await this.ensureConnected())) return false;
 
-  // STOP
+    try {
+      await this.connection!.invoke("SendMessage", bookingId, message);
+      console.log("📤 Message sent for booking:", bookingId);
+      return true;
+    } catch (err) {
+      console.error("❌ Error sending message:", err);
+      return false;
+    }
+  }
 
   async stopSignalR() {
     if (this.connection) {
       await this.connection.stop();
       this.connection = null;
-      console.log('🛑 SignalR Disconnected');
+      console.log("🛑 SignalR Disconnected");
     }
   }
 }

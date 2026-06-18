@@ -1,58 +1,49 @@
+// data/doctors.ts
+import axiosInstance from "../api/axiosConfig";
 import type { IDoctor } from "../types/IDoctor";
 
-export const doctorsData: IDoctor[] = [
-  {
-    id: "spec-1",
-    fullName: "Dr. Sara Nabil",
-    email: "sara.nabil@mindecho.com",
-    gender: 2,
-    age: 34,
-    specialization: "Mood Disorders & Anxiety",
-    bio: "Specialized in helping users manage anxiety, mood swings, and overthinking through practical therapy techniques.",
-    profilePicture:
-      "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=600&q=80",
-    rating: 4.8,
-    ratingCount: 120,
-    priceEGP: 400,
-    languages: ["Arabic", "English"],
-    nextAvailable: "Today 8:00 PM",
-    tags: ["Anxiety", "Overthinking", "Stress"],
-    verified: true,
-  },
-  {
-    id: "spec-2",
-    fullName: "Dr. Omar Khaled",
-    email: "omar.khaled@mindecho.com",
-    gender: 1,
-    age: 38,
-    specialization: "Depression & Emotional Support",
-    bio: "Focused on supporting individuals dealing with depression, low motivation, and emotional burnout.",
-    profilePicture:
-      "https://images.unsplash.com/photo-1612276529731-4b21494e6d71?auto=format&fit=crop&w=600&q=80",
-    rating: 4.7,
-    ratingCount: 98,
-    priceEGP: 350,
-    languages: ["Arabic"],
-    nextAvailable: "Tomorrow 6:00 PM",
-    tags: ["Depression", "Burnout", "Motivation"],
-    verified: true,
-  },
-  {
-    id: "spec-3",
-    fullName: "Dr. Laila Hassan",
-    email: "laila.hassan@mindecho.com",
-    gender: 2,
-    age: 32,
-    specialization: "Relationships & Emotional Awareness",
-    bio: "Helps users improve emotional awareness, relationships, and self-understanding.",
-    profilePicture:
-      "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=600&q=80",
-    rating: 4.6,
-    ratingCount: 75,
-    priceEGP: 300,
-    languages: ["Arabic", "English"],
-    nextAvailable: "Thu 9:00 PM",
-    tags: ["Relationships", "Self-awareness", "Communication"],
-    verified: false,
-  },
-];
+export const DoctorsData = async (): Promise<IDoctor[]> => {
+  try {
+    const res = await axiosInstance.get(
+      `/Doctor/All?pageSize=100&pageNumber=1`,
+    );
+
+    console.log("API response for doctors:", res.data);
+
+    // ✅ استخراج الدكاترة من الـ response بشكل صحيح
+    let doctors: IDoctor[] = [];
+
+    // الحالة: data.data[0].doctors
+    if (
+      res.data?.data &&
+      Array.isArray(res.data.data) &&
+      res.data.data[0]?.doctors
+    ) {
+      doctors = res.data.data[0].doctors;
+      console.log("Extracted from data[0].doctors");
+    }
+    // الحالة: data.doctors
+    else if (res.data?.doctors && Array.isArray(res.data.doctors)) {
+      doctors = res.data.doctors;
+      console.log("Extracted from data.doctors");
+    }
+    // الحالة: data.data array من الدكاترة
+    else if (res.data?.data && Array.isArray(res.data.data)) {
+      doctors = res.data.data;
+      console.log("Extracted from data.data");
+    }
+    // الحالة: data نفسها array
+    else if (Array.isArray(res.data)) {
+      doctors = res.data;
+      console.log("Extracted from data itself");
+    }
+
+    console.log("Fetched doctors count:", doctors.length);
+    console.log("First doctor:", doctors[0]);
+
+    return doctors;
+  } catch (error) {
+    console.error("Error fetching doctors:", error);
+    throw error;
+  }
+};

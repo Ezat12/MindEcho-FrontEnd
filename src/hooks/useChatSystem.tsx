@@ -1,67 +1,60 @@
-
-
-import { useEffect, useState } from 'react';
-import signalRService from '../api/signalrService';
-import { bookingService } from '../api/bookingService';
+import { useEffect, useState, useCallback } from "react";
+import signalRService from "../api/signalrService";
+import bookingService from "../api/bookingService";
 
 export const useChatSystem = (patientId: string) => {
-
   const [canChat, setCanChat] = useState(false);
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<unknown[]>([]);
+  const [messages, setMessages] = useState<unknown[]>([]);
+  const [bookingId, setBookingId] = useState<string | number>(0);
 
   // Load Bookings + Permission Check
 
-  const checkPermission = async () => {
-
-    const res = await bookingService.getAllBookings();
+  const checkPermission = useCallback(async () => {
+    const res = await bookingService.getAllBookings(false);
 
     const data = res.data || [];
 
     setBookings(data);
 
     const allowed = data.some(
-      (b: any) =>
-        b.userId === patientId &&
-        b.bookingStatus === 1
+      (b: { userId: string; bookingStatus: number; id: string | number }) => {
+        if (b.userId === patientId && b.bookingStatus === 1) {
+          setBookingId(b.id);
+          return true;
+        }
+        return false;
+      },
     );
 
     setCanChat(allowed);
-  };
+  }, [patientId]);
 
   // Start SignalR
 
   useEffect(() => {
+    signalRService.startSignalR();
 
-    signalRService.startConnection();
-
-    signalRService.onReceiveMessage((msg) => {
-
-      setMessages((prev) => [...prev, msg]);
+    signalRService.onReceiveMessage((senderId, message) => {
+      setMessages((prev) => [...prev, { senderId, message }]);
     });
 
     checkPermission();
 
     return () => {
-      signalRService.stopConnection();
+      signalRService.stopSignalR();
     };
+  }, [checkPermission]);
 
-  }, []);
-
-  
   // Send Message
 
   const sendMessage = async (message: string) => {
-
     if (!canChat) {
-      alert('❌ You must book first');
+      alert("❌ You must book first");
       return;
     }
 
-    await signalRService.sendMessage(
-      patientId,
-      message
-    );
+    await signalRService.sendMessage(bookingId as number, message);
   };
 
   return {
@@ -71,4 +64,3 @@ export const useChatSystem = (patientId: string) => {
     bookings,
   };
 };
-

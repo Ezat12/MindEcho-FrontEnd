@@ -1,4 +1,5 @@
-import { ONBOARDING_DATA } from '../constants/onboardingData';
+import { useState } from "react";
+import { ONBOARDING_DATA } from "../constants/onboardingData";
 
 const OnboardingScreen = () => {
   const [currentStep, setCurrentStep] = useState(0);

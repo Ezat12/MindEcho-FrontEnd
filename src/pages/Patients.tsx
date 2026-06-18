@@ -1,21 +1,27 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from "react";
 import {
-  Search, MessageCircle, Calendar, Loader2,
-  Activity, LogOut, X, Clock
-} from 'lucide-react';
+  Search,
+  MessageCircle,
+  Calendar,
+  Loader2,
+  Activity,
+  LogOut,
+  X,
+  Clock,
+} from "lucide-react";
 
-import { getMyPatients } from '../api/doctorService';
-import { getAllBookings } from '../api/bookingService';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import signalRService from '../api/signalRService'; 
+import { getMyPatients } from "../api/doctorService";
+import { getAllBookings } from "../api/bookingService";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import signalRService from "../api/signalrService";
 
 const Patients = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
   const [patients, setPatients] = useState<any[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
 
   const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
@@ -38,13 +44,12 @@ const Patients = () => {
 
   useEffect(() => {
     fetchPatients();
-    
+
     signalRService.startSignalR();
     const handleNotification = () => fetchPatients();
-    signalRService.onReceiveNotification(handleNotification);
+    signalRService.onReceiveMessage(handleNotification);
 
     return () => {
-      signalRService.offReceiveNotification(handleNotification);
       signalRService.stopSignalR();
     };
   }, [fetchPatients]);
@@ -53,14 +58,17 @@ const Patients = () => {
     setSelectedPatient(patient);
     setBookingLoading(true);
     try {
-      const response = await getAllBookings();
-      const allBookings = Array.isArray(response) ? response : (response?.data ?? []);
-      
-      const filtered = (Array.isArray(allBookings) ? allBookings : []).filter((b: any) =>
-        b?.UserId === patient?.id ||
-        b?.PatientId === patient?.id ||
-        b?.userId === patient?.id ||
-        b?.patientId === patient?.id
+      const response = await getAllBookings(true);
+      const allBookings = Array.isArray(response)
+        ? response
+        : (response?.data ?? []);
+
+      const filtered = (Array.isArray(allBookings) ? allBookings : []).filter(
+        (b: any) =>
+          b?.UserId === patient?.id ||
+          b?.PatientId === patient?.id ||
+          b?.userId === patient?.id ||
+          b?.patientId === patient?.id,
       );
       setBookings(filtered);
     } catch (err) {
@@ -72,15 +80,20 @@ const Patients = () => {
   };
 
   const safePatients = Array.isArray(patients) ? patients : [];
-  const filteredPatients = safePatients.filter(p =>
-    (p?.fullName ?? p?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredPatients = safePatients.filter((p) =>
+    (p?.fullName ?? p?.name ?? "")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase()),
   );
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans relative">
       {/* NAVBAR */}
       <nav className="bg-white border-b px-8 py-4 flex justify-between items-center">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/doctor-dashboard')}>
+        <div
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={() => navigate("/doctor-dashboard")}
+        >
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
             <Activity className="text-white" />
           </div>
@@ -88,13 +101,33 @@ const Patients = () => {
         </div>
 
         <div className="hidden md:flex gap-8">
-          <button onClick={() => navigate('/doctor-dashboard')} className="hover:text-blue-600">Overview</button>
+          <button
+            onClick={() => navigate("/doctor-dashboard")}
+            className="hover:text-blue-600"
+          >
+            Overview
+          </button>
           <button className="text-blue-600 font-black">Patients</button>
-          <button onClick={() => navigate('/schedule')} className="hover:text-blue-600">Schedule</button>
-          <button onClick={() => navigate('/messages')} className="hover:text-blue-600">Messages</button>
+          <button
+            onClick={() => navigate("/schedule")}
+            className="hover:text-blue-600"
+          >
+            Schedule
+          </button>
+          <button
+            onClick={() => navigate("/messages")}
+            className="hover:text-blue-600"
+          >
+            Messages
+          </button>
         </div>
 
-        <button onClick={logout} className="text-red-500 flex items-center gap-2"><LogOut size={20} /> Logout</button>
+        <button
+          onClick={logout}
+          className="text-red-500 flex items-center gap-2"
+        >
+          <LogOut size={20} /> Logout
+        </button>
       </nav>
 
       {/* MAIN CONTENT */}
@@ -116,23 +149,46 @@ const Patients = () => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-600" size={40} /></div>
+          <div className="flex justify-center py-20">
+            <Loader2 className="animate-spin text-blue-600" size={40} />
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {filteredPatients.map((patient) => (
-              <div key={patient?.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div
+                key={patient?.id}
+                className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm"
+              >
                 <div className="flex gap-4 items-center">
                   <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center font-black text-blue-600">
-                    {(patient?.fullName ?? patient?.name ?? '').charAt(0).toUpperCase()}
+                    {(patient?.fullName ?? patient?.name ?? "")
+                      .charAt(0)
+                      .toUpperCase()}
                   </div>
                   <div>
-                    <h3 className="font-black">{patient?.fullName ?? patient?.name}</h3>
-                    <p className="text-sm text-gray-400">{patient?.diagnosis ?? 'General Patient'}</p>
+                    <h3 className="font-black">
+                      {patient?.fullName ?? patient?.name}
+                    </h3>
+                    <p className="text-sm text-gray-400">
+                      {patient?.diagnosis ?? "General Patient"}
+                    </p>
                   </div>
                 </div>
                 <div className="flex gap-2 mt-4">
-                  <button onClick={() => navigate(`/messages?patientId=${patient?.id}`)} className="flex-1 bg-blue-600 text-white p-2 rounded-xl hover:bg-blue-700 transition"><MessageCircle size={16} /></button>
-                  <button onClick={() => handleViewBookings(patient)} className="p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition"><Calendar size={16} /></button>
+                  <button
+                    onClick={() =>
+                      navigate(`/messages?patientId=${patient?.id}`)
+                    }
+                    className="flex-1 bg-blue-600 text-white p-2 rounded-xl hover:bg-blue-700 transition"
+                  >
+                    <MessageCircle size={16} />
+                  </button>
+                  <button
+                    onClick={() => handleViewBookings(patient)}
+                    className="p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition"
+                  >
+                    <Calendar size={16} />
+                  </button>
                 </div>
               </div>
             ))}
@@ -145,28 +201,50 @@ const Patients = () => {
         <div className="fixed inset-0 bg-black/30 flex justify-center items-center z-50 backdrop-blur-sm">
           <div className="bg-white w-[400px] rounded-2xl p-6 shadow-xl">
             <div className="flex justify-between mb-4">
-              <h2 className="font-black text-lg">Bookings: {selectedPatient.fullName || selectedPatient.name}</h2>
-              <button onClick={() => setSelectedPatient(null)} className="hover:bg-gray-100 p-1 rounded-full"><X size={20} /></button>
+              <h2 className="font-black text-lg">
+                Bookings: {selectedPatient.fullName || selectedPatient.name}
+              </h2>
+              <button
+                onClick={() => setSelectedPatient(null)}
+                className="hover:bg-gray-100 p-1 rounded-full"
+              >
+                <X size={20} />
+              </button>
             </div>
 
             {bookingLoading ? (
-              <div className="flex justify-center py-10"><Loader2 className="animate-spin" /></div>
-            ) : (bookings.length > 0) ? (
+              <div className="flex justify-center py-10">
+                <Loader2 className="animate-spin" />
+              </div>
+            ) : bookings.length > 0 ? (
               bookings.map((b: any) => (
-                <div key={b?.Id ?? b?.id} className="p-4 bg-gray-50 rounded-xl mb-2 border border-gray-100">
+                <div
+                  key={b?.Id ?? b?.id}
+                  className="p-4 bg-gray-50 rounded-xl mb-2 border border-gray-100"
+                >
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Clock size={14} />
-                      <p>{b?.DoctorSessionsSlot?.StartTime ?? b?.doctorSessionsSlot?.startTime ?? '--:--'}</p>
+                      <p>
+                        {b?.DoctorSessionsSlot?.StartTime ??
+                          b?.doctorSessionsSlot?.startTime ??
+                          "--:--"}
+                      </p>
                     </div>
-                    <span className={`text-xs font-black px-2 py-1 rounded-md ${(b?.BookingStatus === 1 || b?.bookingStatus === 1) ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                      {(b?.BookingStatus === 1 || b?.bookingStatus === 1) ? 'Confirmed' : 'Pending'}
+                    <span
+                      className={`text-xs font-black px-2 py-1 rounded-md ${b?.BookingStatus === 1 || b?.bookingStatus === 1 ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}
+                    >
+                      {b?.BookingStatus === 1 || b?.bookingStatus === 1
+                        ? "Confirmed"
+                        : "Pending"}
                     </span>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-center text-gray-500 py-10">No upcoming bookings</p>
+              <p className="text-center text-gray-500 py-10">
+                No upcoming bookings
+              </p>
             )}
           </div>
         </div>

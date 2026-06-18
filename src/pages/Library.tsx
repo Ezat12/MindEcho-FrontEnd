@@ -10,7 +10,7 @@ interface LibraryProps {
   searchTerm: string;
 }
 
-const Library: React.FC<LibraryProps> = ({ searchTerm}) => {
+const Library: React.FC<LibraryProps> = ({ searchTerm }) => {
   const [activeMood, setActiveMood] = useState("joy");
   const [activeTab, setActiveTab] = useState("all");
   const { playTrack } = useAudio();
@@ -176,7 +176,11 @@ const Library: React.FC<LibraryProps> = ({ searchTerm}) => {
                 <div
                   key={`${item.id}-${item.title}`}
                   className="group cursor-pointer"
-                  onClick={() => playTrack(item)}
+                  onClick={() =>
+                    playTrack(
+                      item as unknown as Parameters<typeof playTrack>[0],
+                    )
+                  }
                 >
                   <div
                     className={`aspect-square rounded-[3rem] mb-6 overflow-hidden relative shadow-md group-hover:shadow-3xl transition-all duration-500 group-hover:-translate-y-3 border-4 border-white/50 ${isMediaItem ? "bg-purple-50" : "bg-blue-50"}`}

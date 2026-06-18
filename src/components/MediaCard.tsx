@@ -1,5 +1,5 @@
-import React from 'react';
-import { MediaItem } from '../data/mediaData';
+import React from "react";
+import type { MediaItem } from "../data/mediaData";
 
 interface Props {
   item: MediaItem;
@@ -9,7 +9,11 @@ export const MediaCard: React.FC<Props> = ({ item }) => {
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       <div className="relative h-40">
-        <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover" />
+        <img
+          src={item.thumbnail}
+          alt={item.title}
+          className="w-full h-full object-cover"
+        />
         <span className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-md">
           {item.duration}
         </span>
@@ -20,7 +24,9 @@ export const MediaCard: React.FC<Props> = ({ item }) => {
             {item.type}
           </span>
         </div>
-        <h3 className="font-semibold text-gray-800 line-clamp-2">{item.title}</h3>
+        <h3 className="font-semibold text-gray-800 line-clamp-2">
+          {item.title}
+        </h3>
       </div>
     </div>
   );
